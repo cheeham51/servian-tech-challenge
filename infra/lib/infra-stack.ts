@@ -6,6 +6,9 @@ import ec2 = require('aws-cdk-lib/aws-ec2');
 import { DockerImageAsset } from 'aws-cdk-lib/aws-ecr-assets';
 import rds = require('aws-cdk-lib/aws-rds');
 import path = require("path");
+import { CdkResourceInitializer } from './resource-initializer';
+import { DockerImageCode } from 'aws-cdk-lib/aws-lambda';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 
 export class InfraStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -40,6 +43,34 @@ export class InfraStack extends Stack {
       },
     });
 
+    // Add security group rule to allow access from Fargate Service to RDS on port 5432
     rdsDatabase.connections.allowFrom(fargateService.service, ec2.Port.tcp(5432));
+
+    // Add 
+    const rdsDataSeedingInitializer = new CdkResourceInitializer(this, 'myRdsDataSeedingInitializer', {
+      config: {
+        credsSecretName: rdsDatabase.secret?.secretName
+      },
+      fnLogRetention: RetentionDays.FIVE_MONTHS,
+      fnCode: DockerImageCode.fromImageAsset(path.join(__dirname, '../', 'lambda/rds-init-fn-code'), {}),
+      fnTimeout: Duration.minutes(2),
+      fnSecurityGroups: [],
+      vpc,
+      subnetsSelection: vpc.selectSubnets({
+        subnetType: ec2.SubnetType.PRIVATE_WITH_NAT
+      })
+    })
+
+    // allow the initializer function to connect to the RDS instance
+    rdsDatabase.connections.allowFrom(rdsDataSeedingInitializer.function, ec2.Port.tcp(5432))
+
+    // allow initializer function to read RDS instance creds secret
+    rdsDatabase.secret?.grantRead(rdsDataSeedingInitializer.function)
+
+    // Output RDS data seeding function response
+    new CfnOutput(this, 'RdsInitFnResponse', {
+      value: Token.asString(rdsDataSeedingInitializer.response)
+    })
+
   }
 }
