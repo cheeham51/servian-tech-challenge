@@ -29,7 +29,7 @@ Note: For production deployment, it's recommended to customise the IAM policy so
 * [Node.js](https://nodejs.org/en/)
 * AWS CDK Toolkit
   \ \
-  npm install -g aws-cdk
+  npm install -g aws-cdk \
   npm install -g typescript@latest
 
 ## Deployment Steps
@@ -61,7 +61,9 @@ npm run build
 5. Deploy it
 
 ```
-cdk deploy --require-approval never
+cdk deploy \
+or \
+cdk deploy --require-approval never (if you want to skip the "Do you wish to deploy these changes (y/n)" check)
 ```
 
 ## Deployed Application URL
