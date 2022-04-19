@@ -71,7 +71,7 @@ cdk deploy --require-approval never (if you want to skip the "Do you wish to dep
 
 The URL of the deployed app is in the Cloudformation stack output.
 
-![output](./images/techchallenge.png)
+![output](./images/output.png)
 
 ## Database setup
 
@@ -84,6 +84,10 @@ A logic has been added to the custom resource Lambda function to ignore UPDATE a
 ## Security Considerations
 
 Database credentials are managed by the AWS Secrets Manager to avoid hard-coding the password. The credentials are passed to the Fargate service as environment variables. However to harden the security further, we can add logics in the app to retrieve the credentials directly from the Secrets Manager without having to have environment variables in the middle.
+
+## Warning
+
+During my testing, it seems CDK would overwrite the existing stack with the same stack name. According to the CDK repo, it seems to be a [known issue](https://github.com/aws/aws-cdk/pull/4895). To avoid this, I added a logic to append a hashcode to the construct id so it's extremely unlikely that the stack name is the same as any existing stack. However, please double check before manually deploy the stack. In a production environment, we should consider adding a testing to the pipeline to detect this. 
 
 ## Clean Up
 
